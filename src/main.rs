@@ -173,9 +173,10 @@ fn main() {
         Vec3::new(0.0, 1.0, 0.0)
     );
 
-    let obj = Obj::load("assets/models/sphere.obj").expect("Failed to load obj");
-    let vertex_arrays = obj.get_vertex_array(); 
+    let planet_obj = Obj::load("assets/models/sphere-1.obj").expect("Failed to load obj");
+    let moon_obj = Obj::load("assets/models/sphere.obj").expect("Failed to load obj");
     let mut time = 0;
+
 
     while window.is_open() {
         if window.is_key_down(Key::Escape) {
@@ -192,7 +193,7 @@ fn main() {
 
         framebuffer.clear();
 
-        let noise = create_noise();
+        //let noise = create_noise();
         let model_matrix = create_model_matrix(translation, scale, rotation);
         let view_matrix = create_view_matrix(camera.eye, camera.center, camera.up);
         let projection_matrix = create_perspective_matrix(window_width as f32, window_height as f32);
@@ -203,8 +204,29 @@ fn main() {
             projection_matrix, 
             viewport_matrix,
             time,
-            noise
+            noise: create_noise(),
         };
+
+        let vertex_arrays = planet_obj.get_vertex_array(); 
+        render(&mut framebuffer, &uniforms, &vertex_arrays);
+
+        // Renderiza la segunda esfera (luna)
+        let moon_scale = 0.5; // Tamaño de la luna
+        let moon_translation = Vec3::new(2.25, 2.25, 0.0); // Posición de la luna
+        let moon_rotation = Vec3::new(0.0, time as f32 * 0.02, 0.0);
+
+        let moon_model_matrix = create_model_matrix(moon_translation, moon_scale, moon_rotation);
+        let moon_uniforms = Uniforms {
+            model_matrix: moon_model_matrix,
+            view_matrix,
+            projection_matrix,
+            viewport_matrix,
+            time,
+            noise: create_noise(),
+        };
+
+        let moon_vertex_array = moon_obj.get_vertex_array();
+        render(&mut framebuffer, &moon_uniforms, &moon_vertex_array);
 
 
         framebuffer.set_current_color(0x85936d);

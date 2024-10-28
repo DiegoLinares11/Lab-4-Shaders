@@ -56,6 +56,7 @@ pub fn fragment_shader(fragment: &Fragment, uniforms: &Uniforms) -> Color {
         3 => cellular_shader(fragment, uniforms),
         4 => lava_shader(fragment, uniforms),
         0 => earth_shader(fragment, uniforms),
+        6 => moon_shader(fragment, uniforms), 
         _ => cellular_shader(fragment, uniforms), // Default
     }
   }
@@ -64,8 +65,35 @@ pub fn fragment_shader(fragment: &Fragment, uniforms: &Uniforms) -> Color {
 // Función para cambiar el índice del shader activo
 pub fn switch_shader() {
   unsafe {
-      SHADER_INDEX = (SHADER_INDEX + 1) % 5; // Cambia al siguiente shader, volviendo a 0 si supera 4
+      SHADER_INDEX = (SHADER_INDEX + 1) % 7; // Cambia al siguiente shader, volviendo a 0 si supera 4
   }
+}
+
+fn moon_shader(fragment: &Fragment, uniforms: &Uniforms) -> Color {
+  let zoom = 50.0; // Escala para definir detalles en la superficie
+  let x = fragment.vertex_position.x;
+  let y = fragment.vertex_position.y;
+  let t = uniforms.time as f32 * 0.1; // Tiempo para simular ligera rotación
+
+  // Valor de ruido para la superficie de la luna
+  let surface_noise = uniforms.noise.get_noise_2d(x * zoom + t, y * zoom + t);
+
+  // Colores base para la luna
+  let gray_color = Color::new(200, 200, 200);  // Color gris para la luna
+  let crater_color = Color::new(150, 150, 150); // Color más oscuro para las áreas de cráteres
+
+  // Umbral para simular cráteres
+  let crater_threshold = 0.4;
+
+  // Determinación del color de la superficie
+  let base_color = if surface_noise > crater_threshold {
+      gray_color // Área clara
+  } else {
+      crater_color // Área más oscura (cráter)
+  };
+
+  // Ajustar la intensidad del color final para simular la iluminación
+  base_color * fragment.intensity
 }
 
 
