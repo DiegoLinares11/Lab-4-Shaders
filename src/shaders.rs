@@ -1,9 +1,10 @@
 
-use nalgebra_glm::{Vec3, Vec4, Mat3, mat4_to_mat3};
+use nalgebra_glm::{Vec3, Vec4, Mat3, dot, mat4_to_mat3};
 use crate::vertex::Vertex;
 use crate::Uniforms;
 use crate::fragment::Fragment;
 use crate::color::Color;
+use std::f32::consts::PI;
 use rand::Rng;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
@@ -49,11 +50,12 @@ pub static mut SHADER_INDEX: u8 = 0;
 pub fn fragment_shader(fragment: &Fragment, uniforms: &Uniforms) -> Color {
   unsafe {
     match SHADER_INDEX {
-        0 => black_and_white(fragment, uniforms),
+        5 => black_and_white(fragment, uniforms),
         1 => dalmata_shader(fragment, uniforms),
         2 => cloud_shader(fragment, uniforms),
         3 => cellular_shader(fragment, uniforms),
         4 => lava_shader(fragment, uniforms),
+        0 => earth_shader(fragment, uniforms),
         _ => cellular_shader(fragment, uniforms), // Default
     }
   }
@@ -64,6 +66,52 @@ pub fn switch_shader() {
   unsafe {
       SHADER_INDEX = (SHADER_INDEX + 1) % 5; // Cambia al siguiente shader, volviendo a 0 si supera 4
   }
+}
+
+
+fn earth_shader(fragment: &Fragment, uniforms: &Uniforms) -> Color {
+  let zoom = 80.0; // Escala del mapa de ruido para definir detalles de tierra y océanos
+  let x = fragment.vertex_position.x;
+  let y = fragment.vertex_position.y;
+  let t = uniforms.time as f32 * 0.1; // Tiempo para simular ligera rotación
+
+  // Valor de ruido para la superficie de la Tierra
+  let surface_noise = uniforms.noise.get_noise_2d(x * zoom + t, y * zoom);
+
+  // Colores para diferentes zonas
+  let ocean_color = Color::new(0, 105, 148);        // Azul para océanos
+  let land_color = Color::new(34, 139, 34);         // Verde para tierra
+  let desert_color = Color::new(210, 180, 140);     // Arena para desiertos
+  let snow_color = Color::new(255, 250, 250);       // Blanco para nieve en zonas polares
+  let cloud_color = Color::new(255, 255, 255); // Blanco semitransparente para nubes
+
+  // Umbrales para diferenciar áreas geográficas
+  let snow_threshold = 0.7;
+  let land_threshold = 0.4;
+  let desert_threshold = 0.3;
+
+  // Determinación de color de la superficie
+  let base_color = if y.abs() > snow_threshold {
+      snow_color // Zonas polares
+  } else if surface_noise > land_threshold {
+      land_color // Zonas verdes
+  } else if surface_noise > desert_threshold {
+      desert_color // Desiertos
+  } else {
+      ocean_color // Océanos
+  };
+
+  // Agregar nubes (ruido extra sobre el océano y la tierra)
+  let cloud_noise = uniforms.noise.get_noise_2d(x * zoom * 0.5 + t * 0.5, y * zoom * 0.5 + t * 0.5);
+  let final_color = if cloud_noise > 0.6 {
+      // Si hay nubes, mezcla el color base con el color de las nubes
+      base_color.lerp(&cloud_color, 0.3)
+  } else {
+      base_color
+  };
+
+  // Ajusta la intensidad del color final para simular la iluminación
+  final_color * fragment.intensity
 }
 
 

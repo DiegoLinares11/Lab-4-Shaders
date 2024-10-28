@@ -34,6 +34,10 @@ impl Vertex {
     }
   }
 
+  pub fn set_transformed(&mut self, position: Vec3, normal: Vec3) {
+    self.transformed_position = position;
+    self.transformed_normal = normal;
+  }
 }
 
 impl Default for Vertex {
